@@ -141,8 +141,15 @@ Match the URL, do not take the first word of the first line. When nothing is cur
 line is not a URL at all, and blindly slicing it hands back a link built from a stray word.
 
 Both answers are load-bearing, so branch on both: with `$base` non-empty **and** `exposed=yes`, the
-link is `$base/canvas?path=<path relative to the canvas root>`. Otherwise there is no link to give
-— say the canvas is not exposed, give the file path instead, and mention
+link is `$base/canvas?path=<path>`, where `<path>` is the file's path relative to
+`${MERMAID_CANVAS_ROOT:-$HOME/development}` — **not** relative to `mermaid-scratch/`, and not the
+bare filename. A file written per step 6 to `~/development/mermaid-scratch/<slug>.mmd` gets
+`path=mermaid-scratch/<slug>.mmd`; dropping the `mermaid-scratch/` segment silently 404s as "no
+such diagram," since the server has no basename-fallback search. This is a different root than
+`MERMAID_CANVAS_DIR` in step 7 (that one points at the `mermaid-canvas` checkout itself, for
+running its linter; this one is the server's scan root, which defaults to `~/development` a level
+above the checkout) — do not conflate the two. Otherwise there is no link to give — say the canvas
+is not exposed, give the file path instead, and mention
 `serve.sh http://127.0.0.1:8898 canvas --permanent` as the fix. Never hand over a URL you did not
 actually construct from a match.
 
