@@ -98,19 +98,28 @@ nobody discovers it later.
 
 ## 7. Check it renders before handing it over
 
-Check for the script itself, not merely the checkout — a checkout can have one without the other:
+Check for the script itself, not merely the checkout — a checkout can have one without the other.
+Keep the existence check in its own statement, so that only the linter's own exit code is ever
+read as a verdict on the diagram:
 
 ```bash
-test -f ~/development/mermaid-canvas/scripts/lint-mmd.mjs && \
+if [ -f ~/development/mermaid-canvas/scripts/lint-mmd.mjs ]; then
   node ~/development/mermaid-canvas/scripts/lint-mmd.mjs <file>
+fi
 ```
 
-Non-zero means it does not parse. Read the error, fix the source, re-check. Do not hand over a
-diagram that failed; cap the retries at three and say what is wrong if it will not converge.
+A missing script means **skip this step**. It never means the diagram is broken. Chaining the two
+with `&&` would collapse those into the same non-zero exit, and you would sit there fixing a
+diagram that was fine all along.
 
-If the script prints `SKIP`, the dev dependencies are missing — `npm install` in that checkout.
-If the script is not there at all, skip this step. The rules above are the fallback, and they are
-what lets this skill work on a machine with no canvas at all.
+When the linter does run, non-zero means it does not parse: read the error, fix the source,
+re-check. Do not hand over a diagram that failed; cap the retries at three and say what is wrong
+if it will not converge.
+
+If it prints `SKIP`, the dev dependencies are missing — `npm install` in that checkout.
+
+With no script and no canvas at all, the label rules above are the fallback, and they are what
+lets this skill work on a machine that has never heard of mermaid-canvas.
 
 ## 8. Hand it back
 
