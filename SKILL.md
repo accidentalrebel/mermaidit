@@ -82,8 +82,10 @@ abstract, offer to expand a part) or fidelity (draw everything), and follow the 
 
 ## 6. Where the file goes
 
-Scratch by default: `~/development/mermaid-scratch/<topic-slug>.mmd`. If that name is taken, use
-`<topic-slug>-2.mmd` — never overwrite, since the existing one may carry hand edits.
+Scratch by default: `${MERMAID_CANVAS_ROOT:-$HOME/development}/mermaid-scratch/<topic-slug>.mmd` —
+the same root step 8 builds the handback path against, so a file always lands somewhere the link
+can reach. If that name is taken, use `<topic-slug>-2.mmd` — never overwrite, since the existing
+one may carry hand edits.
 
 It has to be that directory, not a dotdir and not a symlink elsewhere: the canvas scan skips
 directories starting with `.` and does not follow symlinked directories, so anything else is
@@ -135,20 +137,26 @@ Derive the URL, never hardcode a hostname:
 listing=$(serve.sh --list 2>/dev/null)
 base=$(printf '%s\n' "$listing" | grep -oE '^https://[^ ]+' | head -1)
 printf '%s\n' "$listing" | grep -q ' /canvas ' && exposed=yes || exposed=no
+
+root="${MERMAID_CANVAS_ROOT:-$HOME/development}"
+rel="${file#$root/}"   # $file is the diagram's full path from step 6
 ```
 
 Match the URL, do not take the first word of the first line. When nothing is currently served that
 line is not a URL at all, and blindly slicing it hands back a link built from a stray word.
 
-Both answers are load-bearing, so branch on both: with `$base` non-empty **and** `exposed=yes`, the
-link is `$base/canvas?path=<path>`, where `<path>` is the file's path relative to
-`${MERMAID_CANVAS_ROOT:-$HOME/development}` — **not** relative to `mermaid-scratch/`, and not the
-bare filename. A file written per step 6 to `~/development/mermaid-scratch/<slug>.mmd` gets
-`path=mermaid-scratch/<slug>.mmd`; dropping the `mermaid-scratch/` segment silently 404s as "no
-such diagram," since the server has no basename-fallback search. This is a different root than
-`MERMAID_CANVAS_DIR` in step 7 (that one points at the `mermaid-canvas` checkout itself, for
-running its linter; this one is the server's scan root, which defaults to `~/development` a level
-above the checkout) — do not conflate the two. Otherwise there is no link to give — say the canvas
+Compute `rel` with the substitution above rather than typing the relative path by hand — a file
+written per step 6 to `~/development/mermaid-scratch/<slug>.mmd` must produce
+`rel=mermaid-scratch/<slug>.mmd`, and hand-deriving that once already dropped the
+`mermaid-scratch/` segment, which silently 404s as "no such diagram" since the server has no
+basename-fallback search. `$root` here is a different thing than `MERMAID_CANVAS_DIR` in step 7
+(that one points at the `mermaid-canvas` checkout itself, for running its linter; this one is the
+server's scan root, which defaults to `~/development`, a level above the checkout) — do not
+conflate the two.
+
+Both answers from `serve.sh --list` are load-bearing, so branch on both: with `$base` non-empty
+**and** `exposed=yes`, the link is `$base/canvas?path=$rel`. Otherwise there is no link to give —
+say the canvas
 is not exposed, give the file path instead, and mention
 `serve.sh http://127.0.0.1:8898 canvas --permanent` as the fix. Never hand over a URL you did not
 actually construct from a match.
