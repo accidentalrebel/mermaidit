@@ -103,14 +103,20 @@ Keep the existence check in its own statement, so that only the linter's own exi
 read as a verdict on the diagram:
 
 ```bash
-if [ -f ~/development/mermaid-canvas/scripts/lint-mmd.mjs ]; then
-  node ~/development/mermaid-canvas/scripts/lint-mmd.mjs <file>
+canvas="${MERMAID_CANVAS_DIR:-$HOME/development/mermaid-canvas}"
+if [ -f "$canvas/scripts/lint-mmd.mjs" ]; then
+  node "$canvas/scripts/lint-mmd.mjs" <file>
 fi
 ```
 
 A missing script means **skip this step**. It never means the diagram is broken. Chaining the two
 with `&&` would collapse those into the same non-zero exit, and you would sit there fixing a
 diagram that was fine all along.
+
+The path is a default, not a fact. If the checkout lives somewhere else, `MERMAID_CANVAS_DIR`
+points at it. When the script is not found, say which path you looked at — otherwise "skipped the
+render check" reads as "you have no canvas" when the real answer is "your canvas is somewhere I
+did not look", and those want different fixes.
 
 When the linter does run, non-zero means it does not parse: read the error, fix the source,
 re-check. Do not hand over a diagram that failed; cap the retries at three and say what is wrong
@@ -126,11 +132,19 @@ lets this skill work on a machine that has never heard of mermaid-canvas.
 Derive the URL, never hardcode a hostname:
 
 ```bash
-base=$(serve.sh --list 2>/dev/null | head -1 | awk '{print $1}')
-serve.sh --list 2>/dev/null | grep -q ' /canvas '   # is the canvas exposed?
+listing=$(serve.sh --list 2>/dev/null)
+base=$(printf '%s\n' "$listing" | grep -oE '^https://[^ ]+' | head -1)
+printf '%s\n' "$listing" | grep -q ' /canvas ' && exposed=yes || exposed=no
 ```
 
-The link is `$base/canvas?path=<path relative to ~/development>`.
+Match the URL, do not take the first word of the first line. When nothing is currently served that
+line is not a URL at all, and blindly slicing it hands back a link built from a stray word.
+
+Both answers are load-bearing, so branch on both: with `$base` non-empty **and** `exposed=yes`, the
+link is `$base/canvas?path=<path relative to the canvas root>`. Otherwise there is no link to give
+— say the canvas is not exposed, give the file path instead, and mention
+`serve.sh http://127.0.0.1:8898 canvas --permanent` as the fix. Never hand over a URL you did not
+actually construct from a match.
 
 Then one line in the terminal, carrying three things: the diagram type, why that type, and which
 editing mode it gives. For example: *"Sequence diagram, since this is a message exchange over time
