@@ -98,17 +98,19 @@ nobody discovers it later.
 
 ## 7. Check it renders before handing it over
 
-If `~/development/mermaid-canvas` exists:
+Check for the script itself, not merely the checkout — a checkout can have one without the other:
 
 ```bash
-node ~/development/mermaid-canvas/scripts/lint-mmd.mjs <file>
+test -f ~/development/mermaid-canvas/scripts/lint-mmd.mjs && \
+  node ~/development/mermaid-canvas/scripts/lint-mmd.mjs <file>
 ```
 
 Non-zero means it does not parse. Read the error, fix the source, re-check. Do not hand over a
 diagram that failed; cap the retries at three and say what is wrong if it will not converge.
 
 If the script prints `SKIP`, the dev dependencies are missing — `npm install` in that checkout.
-If the checkout does not exist at all, skip this step; the rules above are the fallback.
+If the script is not there at all, skip this step. The rules above are the fallback, and they are
+what lets this skill work on a machine with no canvas at all.
 
 ## 8. Hand it back
 
